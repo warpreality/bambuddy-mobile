@@ -8,6 +8,22 @@ Mobile companion app for the self-hosted [Bambuddy](https://bambuddy.cool) print
 > [!IMPORTANT]
 > Bambuddy Companion requires access to a self-hosted Bambuddy server instance.
 
+> [!NOTE]
+> **About this fork.** This is a community fork of
+> [jmassardo/bambuddy-mobile](https://github.com/jmassardo/bambuddy-mobile). It adds:
+>
+> - 🌐 **Native MakerWorld catalog.** A new *Catalog* tab with search, trending,
+>   popular, most-liked and new feeds, model pages with print profiles, and on-device
+>   favorites ([docs](docs/MAKERWORLD_CATALOG.md)).
+> - 🖨️ **One-tap print.** Import a MakerWorld profile, pre-flight check, slice and send
+>   to the printer through a Bambuddy slicer pipeline with live status.
+> - 📱 **iOS 27 support.** UIScene lifecycle (the app no longer closes at launch) and
+>   CocoaPods deployment targets that build with Xcode 27.
+> - 🔧 **Sideloading without a paid developer account.** `npm run build:ios:sideload`
+>   builds an unsigned .ipa for AltStore / SideStore ([guide](docs/SIDELOADING.md)).
+>
+> All original features and credits belong to the upstream project and its author.
+
 ## Overview
 
 - **App name:** Bambuddy Companion
@@ -30,6 +46,7 @@ Mobile companion app for the self-hosted [Bambuddy](https://bambuddy.cool) print
 
 ## Features
 
+- Native MakerWorld catalog tab with search, feeds, favorites, profile details and one-tap print through slicer pipelines ([guide](docs/MAKERWORLD_CATALOG.md))
 - Multi-printer dashboard with real-time status updates over WebSocket
 - Print queue management with batch grouping and scheduling
 - File browsing, upload, and organization for 3MF/STL assets
@@ -248,6 +265,13 @@ npm run build:android:debug
 npm run build:android:release
 ```
 
+Unsigned .ipa for sideloading with AltStore / SideStore (free Apple ID, see the
+[sideloading guide](docs/SIDELOADING.md)):
+
+```sh
+BUNDLE_ID=com.yourname.bambuddy npm run build:ios:sideload
+```
+
 Beta distribution lanes are also available:
 
 ```sh
@@ -371,3 +395,4 @@ section.
 - Wiki: https://wiki.bambuddy.cool
 - GitHub Discussions: https://github.com/jmassardo/bambuddy-mobile/discussions
 - Issue tracker: https://github.com/jmassardo/bambuddy-mobile/issues
+- This fork: https://github.com/warpreality/bambuddy-mobile

@@ -8,6 +8,7 @@
     "ios": "react-native run-ios",
     "build:ios:debug": "bundle exec fastlane ios build_debug",
     "build:ios:release": "bundle exec fastlane ios build_release",
+    "build:ios:sideload": "bash scripts/build-sideload-ipa.sh",
     "build:android:debug": "bundle exec fastlane android build_debug",
     "build:android:release": "bundle exec fastlane android build_release",
     "beta:ios": "bundle exec fastlane ios beta",

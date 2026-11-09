@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Browse MakerWorld natively in a new Catalog tab with search, trending/popular/most-liked/new feeds and model pages with print profiles.
+- Print a MakerWorld model with one tap: import, printer pre-flight, slicing and dispatch through a remembered slicer pipeline, with live status.
+- Save MakerWorld models to favorites on the device and browse them in the Catalog.
+- Build an unsigned .ipa for AltStore/SideStore sideloading with `npm run build:ios:sideload`.
+
+### Changed
+
+- The Catalog search bar and feed chips hide while scrolling down and reappear on scroll up.
+
+### Fixed
+
+- Stop the app from closing at launch on iOS 27 by adopting the UIScene lifecycle.
+- Build with Xcode 27 by raising CocoaPods targets that declared iOS deployment targets below 15.1.
+
 ## [1.1.2] - 2026-11-02
 
 ### Added
