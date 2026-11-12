@@ -42,3 +42,75 @@ export const PIPELINE_BLOCKING_ISSUES = ['printer_not_set', 'printer_not_found',
 export function oneTapPipelineStorageKey(serverUrl: string | null | undefined) {
   return `bambuddy.makerworldOneTap.pipeline:${serverUrl ?? ''}`;
 }
+
+// ---------------------------------------------------------------------------
+// Pipeline run progress
+//
+// A pipeline run reports `in_progress` as soon as its dispatch jobs exist —
+// even when slicing failed (the server then keeps `error_message` and leaves
+// the jobs `pending` without a queue entry). The real outcome lives in the
+// run's error message and its per-copy jobs, so derive the stage from those.
+
+export type OneTapRunLike = {
+  status: string;
+  error_message?: string | null;
+  jobs?: Array<{
+    status: string;
+    queue_entry_id?: number | null;
+    assigned_printer_name?: string | null;
+    error_message?: string | null;
+  }> | null;
+};
+
+export type OneTapStage =
+  | { kind: 'queued' }
+  | { kind: 'slicing' }
+  | { kind: 'dispatching' }
+  | { kind: 'waiting'; queueItemId: number | null; printerName: string | null }
+  | { kind: 'printing'; printerName: string | null }
+  | { kind: 'completed' }
+  | { kind: 'cancelled' }
+  | { kind: 'failed'; error: string | null };
+
+export function describeOneTapRun(run: OneTapRunLike): OneTapStage {
+  const jobs = run.jobs ?? [];
+  const error = run.error_message?.trim() || jobs.find(job => job.error_message)?.error_message?.trim() || null;
+  switch (run.status) {
+    case 'failed':
+    case 'partial_failure':
+      return { kind: 'failed', error };
+    case 'cancelled':
+      return { kind: 'cancelled' };
+    case 'queued':
+      return { kind: 'queued' };
+    case 'slicing':
+      return { kind: 'slicing' };
+    case 'dispatching':
+      return error ? { kind: 'failed', error } : { kind: 'dispatching' };
+    default:
+      break;
+  }
+  const printing = jobs.find(job => job.status === 'printing');
+  if (printing) return { kind: 'printing', printerName: printing.assigned_printer_name ?? null };
+  if (jobs.length && jobs.every(job => job.status === 'completed')) return { kind: 'completed' };
+  const waiting = jobs.find(job => (job.status === 'queued' || job.status === 'awaiting_printer') && job.queue_entry_id);
+  if (waiting) {
+    return { kind: 'waiting', queueItemId: waiting.queue_entry_id ?? null, printerName: waiting.assigned_printer_name ?? null };
+  }
+  // Nothing reached the queue: an error message means slicing/dispatch failed.
+  if (error) return { kind: 'failed', error };
+  if (jobs.length && jobs.every(job => job.status === 'failed' || job.status === 'cancelled')) {
+    return jobs.some(job => job.status === 'failed') ? { kind: 'failed', error } : { kind: 'cancelled' };
+  }
+  if (run.status === 'completed') return { kind: 'completed' };
+  return { kind: 'dispatching' };
+}
+
+export function isOneTapStageFinal(stage: OneTapStage) {
+  return stage.kind === 'printing' || stage.kind === 'completed' || stage.kind === 'cancelled' || stage.kind === 'failed';
+}
+
+/** True for the slicer error raised by 3MF settings the server's slicer does not accept. */
+export function isIncompatible3mfError(error: string | null | undefined) {
+  return Boolean(error && /invalid parameter value\(s\) included in the 3mf/i.test(error));
+}

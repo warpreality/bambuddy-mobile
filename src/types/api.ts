@@ -996,6 +996,8 @@ export interface Archive {
   status: string;
   started_at: string | null;
   completed_at: string | null;
+  /** Per-copy dispatch jobs; returned by GET /pipeline-runs/{id}. */
+  jobs?: PipelineJob[];
   extra_data: Record<string, unknown> | null;
   makerworld_url: string | null;
   designer: string | null;

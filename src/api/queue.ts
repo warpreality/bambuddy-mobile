@@ -81,6 +81,8 @@ export const queueApi = {
       }),
     }),
 
+  getQueueItem: async (id: number) => request<PrintQueueItem>(`/queue/${id}`),
+
   startQueueItem: async (
     id: number,
     options?: { skipFilamentCheck?: boolean },

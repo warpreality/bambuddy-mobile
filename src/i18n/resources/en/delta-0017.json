@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "Start now",
+  "native.6a713fff72aa8ea2": "Printing on {{printer}}!",
+  "native.93559c971847c9fc": "Printing started!",
+  "native.b0ca62f54b85b88b": "Open queue",
+  "native.b6425efc2eb51f3f": "In the print queue, waiting for the printer",
+  "native.bacc1c69cabc51bd": "The slicer on the Bambuddy server cannot read the settings saved in this model (it was made in a newer Bambu Studio). Update the slicer on the server or try another print profile.",
+  "native.dad70701506fe306": "In the print queue: {{reason}}",
+  "native.ffa719478f4919ad": "The queue holds this print until it is started manually."
+}

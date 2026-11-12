@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "立即开始",
+  "native.6a713fff72aa8ea2": "正在 {{printer}} 上打印！",
+  "native.93559c971847c9fc": "已开始打印！",
+  "native.b0ca62f54b85b88b": "打开队列",
+  "native.b6425efc2eb51f3f": "在打印队列中，等待打印机",
+  "native.bacc1c69cabc51bd": "Bambuddy 服务器上的切片器无法读取此模型中保存的设置（由较新版本的 Bambu Studio 制作）。请更新服务器上的切片器，或尝试其他打印配置。",
+  "native.dad70701506fe306": "打印队列：{{reason}}",
+  "native.ffa719478f4919ad": "队列会保留此打印，直到手动开始。"
+}

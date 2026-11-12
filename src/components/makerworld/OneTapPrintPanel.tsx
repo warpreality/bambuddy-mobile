@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import { makerworldApi } from '@/api/makerworld';
 import { slicingApi } from '@/api/slicing';
+import { queueApi } from '@/api/queue';
 import { printersApi } from '@/api/printers';
 import { useServerStore } from '@/api/server';
 import type { CatalogInstance } from '@/api/makerworldCatalog';
@@ -17,22 +18,32 @@ import { PrimaryButton } from '@/components/common/AppUI';
 import { Sheet } from '@/components/slicing/Controls';
 import { translateNative } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/types';
-import { useCatalogStrings } from '@/screens/makerworldCatalogStrings';
+import { fill, useCatalogStrings } from '@/screens/makerworldCatalogStrings';
 import { useTheme } from '@/theme';
 import { borderRadius, fontSize, fontWeight, spacing } from '@/theme/tokens';
 import { pickBoolean } from '@/utils/data';
 import { hasTarget } from '@/utils/sliceConfiguration';
 import {
+  describeOneTapRun,
+  isIncompatible3mfError,
+  isOneTapStageFinal,
   oneTapPipelineStorageKey,
   PIPELINE_BLOCKING_ISSUES,
-  PIPELINE_TERMINAL_STATUSES,
+  type OneTapStage,
 } from '@/utils/makerworldOneTap';
-import type { PipelineEligibilityReport, PipelineRun, SlicerPipeline } from '@/types/api';
+import type { PipelineEligibilityReport, SlicerPipeline } from '@/types/api';
 
 type Phase =
   | { kind: 'idle' }
   | { kind: 'busy'; label: string }
-  | { kind: 'tracking'; runId: number; pipelineId: number; status: PipelineRun['status']; error?: string | null; tick: number }
+  | {
+    kind: 'tracking';
+    runId: number;
+    stage: OneTapStage;
+    /** Print-queue details while the job waits (reason, manual start). */
+    queue: { reason: string | null; manualStart: boolean } | null;
+    tick: number;
+  }
   | { kind: 'error'; message: string };
 
 // Same captions (and translation keys) as the "Run with pipeline" sheet.
@@ -145,7 +156,7 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
       const started = await slicingApi.run(selected.id, source, 1, force);
       if (started.slice_job_id) trackJob(started.slice_job_id, source);
       void queryClient.invalidateQueries({ queryKey: ['pipeline-runs'] });
-      setPhase({ kind: 'tracking', runId: started.id, pipelineId: selected.id, status: started.status, error: started.error_message, tick: 0 });
+      setPhase({ kind: 'tracking', runId: started.id, stage: describeOneTapRun(started), queue: null, tick: 0 });
     } catch (error) {
       setPhase({ kind: 'error', message: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -153,24 +164,42 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
     }
   };
 
-  // Poll the run until it reaches the printer or ends.
+  // Follow the run (and its print-queue entry) until the printer starts or it ends.
   useEffect(() => {
-    if (phase.kind !== 'tracking') return;
-    if (phase.status === 'in_progress' || (PIPELINE_TERMINAL_STATUSES as readonly string[]).includes(phase.status)) return;
-    const { runId, pipelineId: runPipeline } = phase;
+    if (phase.kind !== 'tracking' || isOneTapStageFinal(phase.stage)) return;
+    const { runId } = phase;
     const timer = setTimeout(async () => {
-      let next: PipelineRun | undefined;
+      let stage: OneTapStage | null = null;
+      let queue: { reason: string | null; manualStart: boolean } | null = null;
       try {
-        next = (await slicingApi.runs({ pipeline_id: runPipeline, limit: 10 })).runs.find(item => item.id === runId);
+        stage = describeOneTapRun(await slicingApi.getRun(runId));
+        if (stage.kind === 'waiting' && stage.queueItemId) {
+          const item = await queueApi.getQueueItem(stage.queueItemId);
+          queue = { reason: item.waiting_reason ?? null, manualStart: Boolean(item.manual_start) };
+        }
       } catch {
-        // Transient error: keep polling.
+        // Transient error: keep polling with the last known stage.
       }
       setPhase(current => current.kind === 'tracking' && current.runId === runId
-        ? { ...current, status: next?.status ?? current.status, error: next?.error_message ?? current.error, tick: current.tick + 1 }
+        ? { ...current, stage: stage ?? current.stage, queue: stage ? queue : current.queue, tick: current.tick + 1 }
         : current);
     }, 3000);
     return () => clearTimeout(timer);
   }, [phase]);
+
+  const [starting, setStarting] = useState(false);
+  const startQueuedNow = async (queueItemId: number) => {
+    setStarting(true);
+    try {
+      await queueApi.startQueueItem(queueItemId);
+      void queryClient.invalidateQueries({ queryKey: ['queue'] });
+      setPhase(current => (current.kind === 'tracking' ? { ...current, queue: current.queue && { ...current.queue, manualStart: false }, tick: current.tick + 1 } : current));
+    } catch (error) {
+      Alert.alert(s.failed, error instanceof Error ? error.message : String(error));
+    } finally {
+      setStarting(false);
+    }
+  };
 
   const choosePipeline = (item: SlicerPipeline) => {
     setPipelineId(item.id);
@@ -192,20 +221,38 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
   };
 
   let statusText: string | null = null;
+  let tone: 'muted' | 'success' | 'error' | 'warning' = 'muted';
+  let working = phase.kind === 'busy';
+  let hint: string | null = null;
+  let queueAction: { id: number; manualStart: boolean } | null = null;
   if (phase.kind === 'busy') statusText = phase.label;
-  else if (phase.kind === 'error') statusText = `${s.failed}: ${phase.message}`;
+  else if (phase.kind === 'error') { statusText = `${s.failed}: ${phase.message}`; tone = 'error'; }
   else if (phase.kind === 'tracking') {
-    statusText = ({
-      queued: s.stepQueued, slicing: s.stepSlicing, dispatching: s.stepDispatching,
-      in_progress: s.done, completed: s.done, cancelled: s.cancelled,
-      failed: `${s.failed}${phase.error ? `: ${phase.error}` : ''}`,
-      partial_failure: `${s.failed}${phase.error ? `: ${phase.error}` : ''}`,
-    } as Record<string, string>)[phase.status] ?? s.stepSlicing;
+    const { stage } = phase;
+    switch (stage.kind) {
+      case 'queued': statusText = s.stepQueued; working = true; break;
+      case 'slicing': statusText = s.stepSlicing; working = true; break;
+      case 'dispatching': statusText = s.stepDispatching; working = true; break;
+      case 'waiting':
+        statusText = phase.queue?.reason ? fill(s.waitingReason, { reason: phase.queue.reason }) : s.waitingInQueue;
+        tone = 'warning';
+        if (phase.queue?.manualStart) hint = s.manualStartHint;
+        if (stage.queueItemId) queueAction = { id: stage.queueItemId, manualStart: Boolean(phase.queue?.manualStart) };
+        break;
+      case 'printing':
+        statusText = stage.printerName ? fill(s.printingOn, { printer: stage.printerName }) : s.printStarted;
+        tone = 'success';
+        break;
+      case 'completed': statusText = s.done; tone = 'success'; break;
+      case 'cancelled': statusText = s.cancelled; break;
+      case 'failed':
+        statusText = `${s.failed}${stage.error ? `: ${stage.error}` : ''}`;
+        tone = 'error';
+        if (isIncompatible3mfError(stage.error)) hint = s.incompatible3mf;
+        break;
+    }
   }
-  const failed = phase.kind === 'error' || (phase.kind === 'tracking' && ['failed', 'partial_failure'].includes(phase.status));
-  const succeeded = phase.kind === 'tracking' && ['in_progress', 'completed'].includes(phase.status);
-  const working = phase.kind === 'busy' || (phase.kind === 'tracking' && ['queued', 'slicing', 'dispatching'].includes(phase.status));
-  const statusColor = failed ? colors.error : succeeded ? colors.success : colors.textSecondary;
+  const statusColor = { muted: colors.textSecondary, success: colors.success, error: colors.error, warning: colors.warning }[tone];
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.bottom, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -235,9 +282,22 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
           />
           {statusText ? (
             <Pressable onPress={() => (phase.kind === 'tracking' ? navigation.navigate('PipelineRuns') : undefined)} style={styles.row}>
-              <Text style={[styles.note, styles.flex, { color: statusColor }]} numberOfLines={3}>{statusText}</Text>
+              <Text style={[styles.note, styles.flex, { color: statusColor }]} numberOfLines={4}>{statusText}</Text>
               {phase.kind === 'tracking' ? <Text style={[styles.note, { color: colors.accent }]}>{s.showRuns} ›</Text> : null}
             </Pressable>
+          ) : null}
+          {hint ? <Text style={[styles.note, { color: colors.textSecondary }]}>{hint}</Text> : null}
+          {queueAction ? (
+            <View style={styles.row}>
+              {queueAction.manualStart ? (
+                <View style={styles.flex}>
+                  <PrimaryButton label={s.startNow} onPress={() => void startQueuedNow(queueAction!.id)} loading={starting} disabled={starting} />
+                </View>
+              ) : null}
+              <View style={styles.flex}>
+                <PrimaryButton label={s.openQueue} variant="secondary" onPress={() => navigation.navigate('Main', { screen: 'Queue' })} />
+              </View>
+            </View>
           ) : null}
         </View>
       )}

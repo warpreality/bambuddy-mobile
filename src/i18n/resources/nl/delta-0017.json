@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "Nu starten",
+  "native.6a713fff72aa8ea2": "Printen op {{printer}}!",
+  "native.93559c971847c9fc": "Printen gestart!",
+  "native.b0ca62f54b85b88b": "Wachtrij openen",
+  "native.b6425efc2eb51f3f": "In de printwachtrij, wacht op de printer",
+  "native.bacc1c69cabc51bd": "De slicer op de Bambuddy-server kan de instellingen in dit model niet lezen (gemaakt met een nieuwere Bambu Studio). Werk de slicer op de server bij of probeer een ander printprofiel.",
+  "native.dad70701506fe306": "In de printwachtrij: {{reason}}",
+  "native.ffa719478f4919ad": "De wachtrij houdt deze print vast tot hij handmatig wordt gestart."
+}

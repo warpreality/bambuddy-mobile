@@ -72,6 +72,14 @@ function buildStrings(t: ReturnType<typeof useTranslation>['t']) {
     issuesTitle: t('makerworldCatalog.issuesTitle', { defaultValue: 'Printer check found issues' }),
     printAnyway: t('makerworldCatalog.printAnyway', { defaultValue: 'Print anyway' }),
     cancel: t('makerworldCatalog.cancel', { defaultValue: 'Cancel' }),
+    printStarted: t('makerworldCatalog.printStarted', { defaultValue: 'Printing started!' }),
+    printingOn: t('makerworldCatalog.printingOn', { defaultValue: 'Printing on {{printer}}!' }),
+    waitingInQueue: t('makerworldCatalog.waitingInQueue', { defaultValue: 'In the print queue, waiting for the printer' }),
+    waitingReason: t('makerworldCatalog.waitingReason', { defaultValue: 'In the print queue: {{reason}}' }),
+    manualStartHint: t('makerworldCatalog.manualStartHint', { defaultValue: 'The queue holds this print until it is started manually.' }),
+    startNow: t('makerworldCatalog.startNow', { defaultValue: 'Start now' }),
+    openQueue: t('makerworldCatalog.openQueue', { defaultValue: 'Open queue' }),
+    incompatible3mf: t('makerworldCatalog.incompatible3mf', { defaultValue: 'The slicer on the Bambuddy server cannot read the settings saved in this model (it was made in a newer Bambu Studio). Update the slicer on the server or try another print profile.' }),
     showRuns: t('makerworldCatalog.showRuns', { defaultValue: 'Pipeline runs' }),
   };
 }

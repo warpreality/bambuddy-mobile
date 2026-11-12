@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "Iniciar ahora",
+  "native.6a713fff72aa8ea2": "¡Imprimiendo en {{printer}}!",
+  "native.93559c971847c9fc": "¡Impresión iniciada!",
+  "native.b0ca62f54b85b88b": "Abrir cola",
+  "native.b6425efc2eb51f3f": "En la cola de impresión, esperando a la impresora",
+  "native.bacc1c69cabc51bd": "El laminador del servidor Bambuddy no puede leer los ajustes guardados en este modelo (se creó con una versión más reciente de Bambu Studio). Actualiza el laminador del servidor o prueba otro perfil de impresión.",
+  "native.dad70701506fe306": "En la cola de impresión: {{reason}}",
+  "native.ffa719478f4919ad": "La cola retiene esta impresión hasta que se inicie manualmente."
+}

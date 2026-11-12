@@ -39,3 +39,46 @@ describe('pickOneTapInstance with MakerWorld hash ids', () => {
     expect(pickOneTapInstance(instances, null)).toBe(instances[1]);
   });
 });
+
+import { describeOneTapRun, isIncompatible3mfError, isOneTapStageFinal } from '@/utils/makerworldOneTap';
+
+describe('describeOneTapRun', () => {
+  it('treats an in_progress run whose slice failed as a failure (real server payload)', () => {
+    const stage = describeOneTapRun({
+      status: 'in_progress',
+      error_message: 'Slice failed: Invalid parameter value(s) included in the 3mf file.',
+      jobs: [
+        { status: 'pending', queue_entry_id: null, error_message: null },
+        { status: 'pending', queue_entry_id: null, error_message: null },
+        { status: 'pending', queue_entry_id: null, error_message: null },
+      ],
+    });
+    expect(stage).toEqual({ kind: 'failed', error: 'Slice failed: Invalid parameter value(s) included in the 3mf file.' });
+    expect(isOneTapStageFinal(stage)).toBe(true);
+    expect(isIncompatible3mfError(stage.kind === 'failed' ? stage.error : null)).toBe(true);
+  });
+
+  it('reports the queue entry while the job waits for the printer', () => {
+    expect(describeOneTapRun({
+      status: 'in_progress',
+      jobs: [{ status: 'queued', queue_entry_id: 42, assigned_printer_name: 'Home' }],
+    })).toEqual({ kind: 'waiting', queueItemId: 42, printerName: 'Home' });
+  });
+
+  it('only reports success once the printer is printing', () => {
+    expect(describeOneTapRun({ status: 'in_progress', jobs: [{ status: 'pending' }] })).toEqual({ kind: 'dispatching' });
+    const printing = describeOneTapRun({ status: 'in_progress', jobs: [{ status: 'printing', assigned_printer_name: 'Home' }] });
+    expect(printing).toEqual({ kind: 'printing', printerName: 'Home' });
+    expect(isOneTapStageFinal(printing)).toBe(true);
+    expect(describeOneTapRun({ status: 'completed', jobs: [{ status: 'completed' }] })).toEqual({ kind: 'completed' });
+  });
+
+  it('maps early and terminal run statuses', () => {
+    expect(describeOneTapRun({ status: 'queued' })).toEqual({ kind: 'queued' });
+    expect(describeOneTapRun({ status: 'slicing' })).toEqual({ kind: 'slicing' });
+    expect(describeOneTapRun({ status: 'failed', error_message: 'boom' })).toEqual({ kind: 'failed', error: 'boom' });
+    expect(describeOneTapRun({ status: 'cancelled' })).toEqual({ kind: 'cancelled' });
+    expect(describeOneTapRun({ status: 'in_progress', jobs: [{ status: 'failed', error_message: 'offline' }] }))
+      .toEqual({ kind: 'failed', error: 'offline' });
+  });
+});
