@@ -1,4 +1,5 @@
 import { pickNumber, type ApiRecord } from '@/utils/data';
+import type { SliceRequest, SlicerPipeline } from '@/types/api';
 
 export type MakerworldModelRef = { modelId: number; profileId: number | null; url: string };
 
@@ -146,4 +147,67 @@ export function printerIsPrintingFile(
   return [status.subtask_name, status.current_print, status.gcode_file]
     .filter((value): value is string => Boolean(value))
     .some(value => normalizeTaskName(value) === wanted);
+}
+
+// ---------------------------------------------------------------------------
+// Single-plate printing
+//
+// A pipeline run always slices plate 1 of the source. To print another plate
+// of a multi-plate model, slice that plate with the pipeline's presets and
+// queue the result on the pipeline's target ourselves.
+
+/** Slice request equivalent to the pipeline's own, limited to one plate. */
+export function pipelinePlateSliceRequest(
+  pipeline: Pick<SlicerPipeline, 'printer_preset' | 'process_preset' | 'filament_presets' | 'bed_type'>,
+  plate: number,
+): SliceRequest {
+  return {
+    printer_preset: pipeline.printer_preset,
+    process_preset: pipeline.process_preset,
+    filament_presets: pipeline.filament_presets,
+    ...(pipeline.bed_type ? { bed_type: pipeline.bed_type } : {}),
+    plate,
+    export_3mf: true,
+  };
+}
+
+/** Queue target of a pipeline: its printer, or any printer of its class. */
+export function pipelineQueueTarget(
+  pipeline: Pick<SlicerPipeline, 'target_kind' | 'target_printer_id' | 'target_model_class'>,
+): { printer_id: number } | { target_model: string } | null {
+  if (pipeline.target_kind === 'specific_printer' && pipeline.target_printer_id != null) {
+    return { printer_id: pipeline.target_printer_id };
+  }
+  if (pipeline.target_model_class) return { target_model: pipeline.target_model_class };
+  if (pipeline.target_printer_id != null) return { printer_id: pipeline.target_printer_id };
+  return null;
+}
+
+/** Stage of a print-queue entry created for a single plate. */
+export function describeOneTapQueueItem(
+  item: { id: number; status: string; error_message?: string | null },
+  printerName: string | null,
+): OneTapStage {
+  switch (item.status) {
+    case 'printing':
+      return { kind: 'printing', printerName };
+    case 'completed':
+      return { kind: 'completed' };
+    case 'cancelled':
+    case 'skipped':
+      return { kind: 'cancelled' };
+    case 'failed':
+      return { kind: 'failed', error: item.error_message?.trim() || null };
+    default:
+      return { kind: 'waiting', queueItemId: item.id, printerName };
+  }
+}
+
+/** Short caption of a plate for the plate picker. */
+export function plateCaption(plate: { index: number; name: string | null; objects: string[] }) {
+  const name = plate.name?.trim();
+  if (name) return name;
+  const objects = plate.objects.filter(Boolean);
+  if (!objects.length) return '';
+  return objects.length > 3 ? `${objects.slice(0, 3).join(', ')} +${objects.length - 3}` : objects.join(', ');
 }

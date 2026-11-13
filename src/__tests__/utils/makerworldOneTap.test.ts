@@ -84,6 +84,7 @@ describe('describeOneTapRun', () => {
 });
 
 import { printerIsPrintingFile } from '@/utils/makerworldOneTap';
+import { describeOneTapQueueItem, pipelinePlateSliceRequest, pipelineQueueTarget, plateCaption } from '@/utils/makerworldOneTap';
 
 describe('printerIsPrintingFile', () => {
   it('matches the printer task to the imported file (real server names)', () => {
@@ -107,5 +108,51 @@ describe('describeOneTapRun with a run stuck in dispatching', () => {
     })).toEqual({ kind: 'waiting', queueItemId: 6, printerName: 'Home' });
     expect(describeOneTapRun({ status: 'dispatching', jobs: [{ status: 'pending' }] })).toEqual({ kind: 'dispatching' });
     expect(describeOneTapRun({ status: 'dispatching', error_message: 'boom', jobs: [] })).toEqual({ kind: 'failed', error: 'boom' });
+  });
+});
+
+describe('single-plate printing', () => {
+  const pipeline = {
+    printer_preset: { source: 'cloud', id: 'GM030' },
+    process_preset: { source: 'cloud', id: 'GP079' },
+    filament_presets: [{ source: 'cloud', id: 'GFA00' }],
+    bed_type: 'Textured PEI Plate',
+    target_kind: 'specific_printer' as const,
+    target_printer_id: 1,
+    target_model_class: null,
+  };
+
+  it('slices only the chosen plate with the pipeline presets', () => {
+    expect(pipelinePlateSliceRequest(pipeline as never, 3)).toEqual({
+      printer_preset: { source: 'cloud', id: 'GM030' },
+      process_preset: { source: 'cloud', id: 'GP079' },
+      filament_presets: [{ source: 'cloud', id: 'GFA00' }],
+      bed_type: 'Textured PEI Plate',
+      plate: 3,
+      export_3mf: true,
+    });
+    expect(pipelinePlateSliceRequest({ ...pipeline, bed_type: null } as never, 2)).not.toHaveProperty('bed_type');
+  });
+
+  it('queues on the pipeline printer or its printer class', () => {
+    expect(pipelineQueueTarget(pipeline)).toEqual({ printer_id: 1 });
+    expect(pipelineQueueTarget({ target_kind: 'printer_class', target_printer_id: null, target_model_class: 'A1' })).toEqual({ target_model: 'A1' });
+    expect(pipelineQueueTarget({ target_kind: 'printer_class', target_printer_id: null, target_model_class: null })).toBeNull();
+  });
+
+  it('maps queue entry states to stages', () => {
+    expect(describeOneTapQueueItem({ id: 7, status: 'pending' }, 'Home')).toEqual({ kind: 'waiting', queueItemId: 7, printerName: 'Home' });
+    expect(describeOneTapQueueItem({ id: 7, status: 'printing' }, 'Home')).toEqual({ kind: 'printing', printerName: 'Home' });
+    expect(describeOneTapQueueItem({ id: 7, status: 'completed' }, null)).toEqual({ kind: 'completed' });
+    expect(describeOneTapQueueItem({ id: 7, status: 'cancelled' }, null)).toEqual({ kind: 'cancelled' });
+    expect(describeOneTapQueueItem({ id: 7, status: 'skipped' }, null)).toEqual({ kind: 'cancelled' });
+    expect(describeOneTapQueueItem({ id: 7, status: 'failed', error_message: ' Nozzle clog ' }, null)).toEqual({ kind: 'failed', error: 'Nozzle clog' });
+  });
+
+  it('describes a plate by name or by its objects', () => {
+    expect(plateCaption({ index: 1, name: 'Hat', objects: ['a'] })).toBe('Hat');
+    expect(plateCaption({ index: 2, name: null, objects: ['Body', 'Head'] })).toBe('Body, Head');
+    expect(plateCaption({ index: 3, name: ' ', objects: ['a', 'b', 'c', 'd', 'e'] })).toBe('a, b, c +2');
+    expect(plateCaption({ index: 4, name: null, objects: [] })).toBe('');
   });
 });

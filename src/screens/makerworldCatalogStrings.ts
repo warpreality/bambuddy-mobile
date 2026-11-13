@@ -79,6 +79,10 @@ function buildStrings(t: ReturnType<typeof useTranslation>['t']) {
     manualStartHint: t('makerworldCatalog.manualStartHint', { defaultValue: 'The queue holds this print until it is started manually.' }),
     startNow: t('makerworldCatalog.startNow', { defaultValue: 'Start now' }),
     openQueue: t('makerworldCatalog.openQueue', { defaultValue: 'Open queue' }),
+    choosePlate: t('makerworldCatalog.choosePlate', { defaultValue: 'Choose a plate' }),
+    choosePlateHint: t('makerworldCatalog.choosePlateHint', { defaultValue: 'This model has several plates. Pick the one to print.' }),
+    plateN: t('makerworldCatalog.plateN', { defaultValue: 'Plate {{plate}}' }),
+    slicingPlate: t('makerworldCatalog.slicingPlate', { defaultValue: 'Slicing plate {{plate}}…' }),
     incompatible3mf: t('makerworldCatalog.incompatible3mf', { defaultValue: 'The slicer on the Bambuddy server cannot read the settings saved in this model (it was made in a newer Bambu Studio). Update the slicer on the server or try another print profile.' }),
     showRuns: t('makerworldCatalog.showRuns', { defaultValue: 'Pipeline runs' }),
   };

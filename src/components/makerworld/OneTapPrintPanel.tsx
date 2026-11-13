@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import { slicingApi } from '@/api/slicing';
 import { queueApi } from '@/api/queue';
 import { printersApi } from '@/api/printers';
 import { useServerStore } from '@/api/server';
+import { buildMediaUrl } from '@/api/http';
 import type { CatalogInstance } from '@/api/makerworldCatalog';
 import { useAuth } from '@/contexts/AuthContext';
 import { PrimaryButton } from '@/components/common/AppUI';
@@ -23,22 +24,35 @@ import { borderRadius, fontSize, fontWeight, spacing } from '@/theme/tokens';
 import { pickBoolean } from '@/utils/data';
 import { hasTarget } from '@/utils/sliceConfiguration';
 import {
+  describeOneTapQueueItem,
   describeOneTapRun,
   isIncompatible3mfError,
+  pipelinePlateSliceRequest,
+  pipelineQueueTarget,
+  plateCaption,
   printerIsPrintingFile,
   isOneTapStageFinal,
   oneTapPipelineStorageKey,
   PIPELINE_BLOCKING_ISSUES,
   type OneTapStage,
 } from '@/utils/makerworldOneTap';
-import type { PipelineEligibilityReport, SlicerPipeline } from '@/types/api';
+import type { PipelineEligibilityReport, SlicerPipeline, SliceResponse, SliceSourceProps, SourcePlates } from '@/types/api';
 
 type Phase =
   | { kind: 'idle' }
   | { kind: 'busy'; label: string }
   | {
+    kind: 'choosePlate';
+    plates: SourcePlates['plates'];
+    source: SliceSourceProps;
+    pipeline: SlicerPipeline;
+  }
+  | {
     kind: 'tracking';
-    runId: number;
+    /** Distinguishes one print attempt from the next. */
+    token: number;
+    /** A pipeline run (plate 1), or one plate sliced and queued by the app. */
+    origin: TrackingOrigin;
     stage: OneTapStage;
     /** Print-queue details while the job waits (reason, manual start). */
     queue: { reason: string | null; manualStart: boolean } | null;
@@ -50,6 +64,15 @@ type Phase =
     tick: number;
   }
   | { kind: 'error'; message: string };
+
+type TrackingOrigin =
+  | { kind: 'run'; runId: number }
+  | {
+    kind: 'plate';
+    plate: number;
+    target: { printer_id: number } | { target_model: string };
+    queueItemId: number | null;
+  };
 
 // Same captions (and translation keys) as the "Run with pipeline" sheet.
 const ISSUE_CAPTIONS: Record<string, () => string> = {
@@ -156,12 +179,20 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
         if (!force) { setPhase({ kind: 'idle' }); return; }
       }
 
+      // A multi-plate model: let the user pick the plate to print.
+      const plates = await slicingApi.plates(source).catch(() => null);
+      if (plates && plates.plates.length > 1) {
+        setPhase({ kind: 'choosePlate', plates: plates.plates, source, pipeline: selected });
+        return;
+      }
+
       setPhase({ kind: 'busy', label: s.stepStart });
       const started = await slicingApi.run(selected.id, source, 1, force);
       void queryClient.invalidateQueries({ queryKey: ['pipeline-runs'] });
       setPhase({
         kind: 'tracking',
-        runId: started.id,
+        token: Date.now(),
+        origin: { kind: 'run', runId: started.id },
         stage: describeOneTapRun(started),
         queue: null,
         fileName: imported.filename,
@@ -177,40 +208,106 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
     }
   };
 
+  /** Slices one plate with the pipeline's presets and tracks it until it is queued. */
+  const printPlate = async (plate: number) => {
+    if (phase.kind !== 'choosePlate' || busyRef.current) return;
+    const { source, pipeline: selected } = phase;
+    const target = pipelineQueueTarget(selected);
+    if (!target) { setPhase({ kind: 'error', message: s.noTarget }); return; }
+    busyRef.current = true;
+    try {
+      setPhase({ kind: 'busy', label: s.stepStart });
+      const enqueued = await slicingApi.slice(source, pipelinePlateSliceRequest(selected, plate));
+      setPhase({
+        kind: 'tracking',
+        token: Date.now(),
+        origin: { kind: 'plate', plate, target, queueItemId: null },
+        stage: { kind: 'slicing' },
+        queue: null,
+        fileName: source.sourceName,
+        printerId: 'printer_id' in target ? target.printer_id : null,
+        sliceJobId: enqueued.job_id,
+        slicePercent: null,
+        tick: 0,
+      });
+    } catch (error) {
+      setPhase({ kind: 'error', message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      busyRef.current = false;
+    }
+  };
+
   // Follow the run (and its print-queue entry) until the printer starts or it ends.
   useEffect(() => {
     if (phase.kind !== 'tracking' || isOneTapStageFinal(phase.stage)) return;
-    const { runId, fileName, printerId, sliceJobId } = phase;
+    const { token, origin, printerId, sliceJobId } = phase;
+    const printerName = printerId ? printersQuery.data?.find(item => item.id === printerId)?.name ?? null : null;
     const timer = setTimeout(async () => {
       let stage: OneTapStage | null = null;
       let queue: { reason: string | null; manualStart: boolean } | null = null;
       let slicePercent: number | null = null;
+      let nextOrigin: TrackingOrigin = origin;
+      let fileName = phase.fileName;
       try {
-        stage = describeOneTapRun(await slicingApi.getRun(runId));
-        if (stage.kind === 'slicing' && sliceJobId) {
+        if (origin.kind === 'run') {
+          stage = describeOneTapRun(await slicingApi.getRun(origin.runId));
+        } else if (origin.queueItemId == null && sliceJobId) {
+          // Slicing the chosen plate; once done, queue the sliced file once.
+          const job = await slicingApi.job(sliceJobId);
+          if (job.status === 'failed') {
+            stage = { kind: 'failed', error: job.error_detail?.trim() || null };
+          } else if (job.status === 'completed') {
+            const sliced = job.result && 'library_file_id' in job.result ? (job.result as SliceResponse) : null;
+            if (!sliced) {
+              stage = { kind: 'failed', error: null };
+            } else {
+              fileName = sliced.name || fileName;
+              try {
+                const item = await queueApi.addToQueue({ ...origin.target, library_file_id: sliced.library_file_id });
+                void queryClient.invalidateQueries({ queryKey: ['queue'] });
+                nextOrigin = { ...origin, queueItemId: item.id };
+                stage = describeOneTapQueueItem(item, printerName);
+              } catch (error) {
+                // Never retry the add: a lost response could queue the plate twice.
+                stage = { kind: 'failed', error: error instanceof Error ? error.message : String(error) };
+              }
+            }
+          } else {
+            stage = { kind: 'slicing' };
+          }
+        } else if (origin.queueItemId != null) {
+          stage = describeOneTapQueueItem(await queueApi.getQueueItem(origin.queueItemId), printerName);
+        }
+        if (stage?.kind === 'slicing' && sliceJobId) {
           const job = await slicingApi.job(sliceJobId).catch(() => null);
           slicePercent = job?.progress ? Math.round(job.progress.total_percent) : null;
         }
-        if (stage.kind === 'waiting' && stage.queueItemId) {
+        if (stage?.kind === 'waiting' && stage.queueItemId) {
           const item = await queueApi.getQueueItem(stage.queueItemId);
           queue = { reason: item.waiting_reason ?? null, manualStart: Boolean(item.manual_start) };
         }
         // The server can lose track of a run's jobs while the printer already prints the file.
-        if ((stage.kind === 'dispatching' || stage.kind === 'waiting') && printerId) {
+        if ((stage?.kind === 'dispatching' || stage?.kind === 'waiting') && printerId) {
           const status = await printersApi.getPrinterStatus(printerId).catch(() => null);
-          if (printerIsPrintingFile(status, fileName)) {
-            stage = { kind: 'printing', printerName: printersQuery.data?.find(item => item.id === printerId)?.name ?? null };
-          }
+          if (printerIsPrintingFile(status, fileName)) stage = { kind: 'printing', printerName };
         }
       } catch {
         // Transient error: keep polling with the last known stage.
       }
-      setPhase(current => current.kind === 'tracking' && current.runId === runId
-        ? { ...current, stage: stage ?? current.stage, queue: stage ? queue : current.queue, slicePercent, tick: current.tick + 1 }
+      setPhase(current => current.kind === 'tracking' && current.token === token
+        ? {
+          ...current,
+          origin: nextOrigin,
+          fileName,
+          stage: stage ?? current.stage,
+          queue: stage ? queue : current.queue,
+          slicePercent,
+          tick: current.tick + 1,
+        }
         : current);
     }, 3000);
     return () => clearTimeout(timer);
-  }, [phase, printersQuery.data]);
+  }, [phase, printersQuery.data, queryClient]);
 
   const [starting, setStarting] = useState(false);
   const startQueuedNow = async (queueItemId: number) => {
@@ -251,15 +348,18 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
   let hint: string | null = null;
   let queueAction: { id: number; manualStart: boolean } | null = null;
   if (phase.kind === 'busy') statusText = phase.label;
+  else if (phase.kind === 'choosePlate') statusText = s.choosePlateHint;
   else if (phase.kind === 'error') { statusText = `${s.failed}: ${phase.message}`; tone = 'error'; }
   else if (phase.kind === 'tracking') {
     const { stage } = phase;
     switch (stage.kind) {
       case 'queued': statusText = s.stepQueued; working = true; break;
-      case 'slicing':
-        statusText = phase.slicePercent != null ? `${s.stepSlicing} ${phase.slicePercent}%` : s.stepSlicing;
+      case 'slicing': {
+        const label = phase.origin.kind === 'plate' ? fill(s.slicingPlate, { plate: phase.origin.plate }) : s.stepSlicing;
+        statusText = phase.slicePercent != null ? `${label} ${phase.slicePercent}%` : label;
         working = true;
         break;
+      }
       case 'dispatching': statusText = s.stepDispatching; working = true; break;
       case 'waiting':
         statusText = phase.queue?.reason ? fill(s.waitingReason, { reason: phase.queue.reason }) : s.waitingInQueue;
@@ -310,9 +410,9 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
             disabled={working || queueAction !== null || !statusQuery.data || !instance}
           />
           {statusText ? (
-            <Pressable onPress={() => (phase.kind === 'tracking' ? navigation.navigate('PipelineRuns') : undefined)} style={styles.row}>
+            <Pressable onPress={() => (phase.kind === 'tracking' && phase.origin.kind === 'run' ? navigation.navigate('PipelineRuns') : undefined)} style={styles.row}>
               <Text style={[styles.note, styles.flex, { color: statusColor }]} numberOfLines={4}>{statusText}</Text>
-              {phase.kind === 'tracking' ? <Text style={[styles.note, { color: colors.accent }]}>{s.showRuns} ›</Text> : null}
+              {phase.kind === 'tracking' && phase.origin.kind === 'run' ? <Text style={[styles.note, { color: colors.accent }]}>{s.showRuns} ›</Text> : null}
             </Pressable>
           ) : null}
           {hint ? <Text style={[styles.note, { color: colors.textSecondary }]}>{hint}</Text> : null}
@@ -330,6 +430,37 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
           ) : null}
         </View>
       )}
+
+      <Sheet
+        visible={phase.kind === 'choosePlate'}
+        title={s.choosePlate}
+        onClose={() => setPhase(current => (current.kind === 'choosePlate' ? { kind: 'idle' } : current))}
+      >
+        <Text style={[styles.note, { color: colors.textSecondary }]}>{s.choosePlateHint}</Text>
+        {phase.kind === 'choosePlate' ? phase.plates.map(plate => {
+          const caption = plateCaption(plate);
+          return (
+            <Pressable
+              key={plate.index}
+              accessibilityRole="button"
+              accessibilityLabel={fill(s.plateN, { plate: plate.index })}
+              onPress={() => void printPlate(plate.index)}
+              style={[styles.card, styles.plateRow, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
+            >
+              {plate.thumbnail_url ? (
+                <Image
+                  source={{ uri: buildMediaUrl(plate.thumbnail_url.replace(/^\/api\/v1/, '')) }}
+                  style={[styles.plateThumb, { backgroundColor: colors.surface }]}
+                />
+              ) : <View style={[styles.plateThumb, { backgroundColor: colors.surface }]} />}
+              <View style={[styles.flex, styles.plateText]}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{fill(s.plateN, { plate: plate.index })}</Text>
+                {caption ? <Text style={[styles.note, { color: colors.textSecondary }]} numberOfLines={2}>{caption}</Text> : null}
+              </View>
+            </Pressable>
+          );
+        }) : null}
+      </Sheet>
 
       <Sheet visible={pickerVisible} title={s.choosePipeline} onClose={() => { setPickerVisible(false); setPendingPrint(false); }}>
         <Text style={[styles.note, { color: colors.textSecondary }]}>{s.choosePipelineHint}</Text>
@@ -375,4 +506,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md },
   card: { borderWidth: 1, borderRadius: borderRadius.lg, padding: spacing.md, gap: spacing.xs },
   cardTitle: { fontSize: fontSize.base, fontWeight: fontWeight.semibold },
+  plateRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  plateThumb: { width: 72, height: 72, borderRadius: borderRadius.md },
+  plateText: { gap: spacing.xs },
 });
