@@ -306,7 +306,8 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
             label={working ? s.printing : `🖨  ${s.print}`}
             onPress={onPrint}
             loading={working}
-            disabled={working || !statusQuery.data || !instance}
+            // While the job waits in the print queue a second tap would queue a duplicate copy.
+            disabled={working || queueAction !== null || !statusQuery.data || !instance}
           />
           {statusText ? (
             <Pressable onPress={() => (phase.kind === 'tracking' ? navigation.navigate('PipelineRuns') : undefined)} style={styles.row}>
