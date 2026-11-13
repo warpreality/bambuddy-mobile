@@ -85,9 +85,10 @@ export function describeOneTapRun(run: OneTapRunLike): OneTapStage {
       return { kind: 'queued' };
     case 'slicing':
       return { kind: 'slicing' };
-    case 'dispatching':
-      return error ? { kind: 'failed', error } : { kind: 'dispatching' };
     default:
+      // 'dispatching' / 'in_progress' / 'completed': the jobs tell the real state.
+      // The server can keep a run in 'dispatching' while its job already sits in the
+      // print queue or prints, so never stop at the run status here.
       break;
   }
   const printing = jobs.find(job => job.status === 'printing');

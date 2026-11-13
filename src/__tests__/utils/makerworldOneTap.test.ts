@@ -98,3 +98,14 @@ describe('printerIsPrintingFile', () => {
     expect(printerIsPrintingFile(null, 'x.3mf')).toBe(false);
   });
 });
+
+describe('describeOneTapRun with a run stuck in dispatching', () => {
+  it('looks at the jobs (real server payload: run 5, queue item 6 "Busy: Home")', () => {
+    expect(describeOneTapRun({
+      status: 'dispatching',
+      jobs: [{ status: 'queued', queue_entry_id: 6, assigned_printer_name: 'Home' }],
+    })).toEqual({ kind: 'waiting', queueItemId: 6, printerName: 'Home' });
+    expect(describeOneTapRun({ status: 'dispatching', jobs: [{ status: 'pending' }] })).toEqual({ kind: 'dispatching' });
+    expect(describeOneTapRun({ status: 'dispatching', error_message: 'boom', jobs: [] })).toEqual({ kind: 'failed', error: 'boom' });
+  });
+});
