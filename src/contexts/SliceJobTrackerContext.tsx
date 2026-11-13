@@ -9,7 +9,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { AppState, ScrollView, StyleSheet } from 'react-native';
+import { AppState, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { slicingApi, type SliceSourceProps } from '@/api/slicing';
@@ -199,7 +200,7 @@ export function SliceJobTrackerProvider({
     [key],
   );
   const content = activeTracked.length ? (
-    <ScrollView horizontal style={styles.banner}>
+    <ScrollView style={styles.banner} contentContainerStyle={styles.bannerContent}>
       {activeTracked.map((job, i) => {
         const query = jobs[i];
         const state = query.data;
@@ -277,6 +278,13 @@ export function SliceJobTrackerProvider({
   );
 }
 export function SliceJobStatusBanner() {
-  return <>{useSliceJobTracker().jobs}</>;
+  const { jobs } = useSliceJobTracker();
+  const insets = useSafeAreaInsets();
+  if (!jobs) return null;
+  // Keep the banner clear of the status bar / Dynamic Island.
+  return <View style={{ paddingTop: insets.top }}>{jobs}</View>;
 }
-const styles = StyleSheet.create({ banner: { maxHeight: 180, flexGrow: 0 } });
+const styles = StyleSheet.create({
+  banner: { maxHeight: 220, flexGrow: 0 },
+  bannerContent: { paddingHorizontal: 12, gap: 8 },
+});

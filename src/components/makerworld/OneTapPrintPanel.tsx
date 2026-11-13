@@ -13,7 +13,6 @@ import { printersApi } from '@/api/printers';
 import { useServerStore } from '@/api/server';
 import type { CatalogInstance } from '@/api/makerworldCatalog';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSliceJobTracker } from '@/contexts/SliceJobTrackerContext';
 import { PrimaryButton } from '@/components/common/AppUI';
 import { Sheet } from '@/components/slicing/Controls';
 import { translateNative } from '@/i18n';
@@ -26,6 +25,7 @@ import { hasTarget } from '@/utils/sliceConfiguration';
 import {
   describeOneTapRun,
   isIncompatible3mfError,
+  printerIsPrintingFile,
   isOneTapStageFinal,
   oneTapPipelineStorageKey,
   PIPELINE_BLOCKING_ISSUES,
@@ -42,6 +42,11 @@ type Phase =
     stage: OneTapStage;
     /** Print-queue details while the job waits (reason, manual start). */
     queue: { reason: string | null; manualStart: boolean } | null;
+    /** Imported file + pipeline printer, used to confirm the print on the printer itself. */
+    fileName: string;
+    printerId: number | null;
+    sliceJobId: number | null;
+    slicePercent: number | null;
     tick: number;
   }
   | { kind: 'error'; message: string };
@@ -71,7 +76,6 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { colors } = useTheme();
   const { hasPermission } = useAuth();
-  const { trackJob } = useSliceJobTracker();
   const queryClient = useQueryClient();
   const serverUrl = useServerStore(state => state.serverUrl);
   const busyRef = useRef(false);
@@ -154,9 +158,18 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
 
       setPhase({ kind: 'busy', label: s.stepStart });
       const started = await slicingApi.run(selected.id, source, 1, force);
-      if (started.slice_job_id) trackJob(started.slice_job_id, source);
       void queryClient.invalidateQueries({ queryKey: ['pipeline-runs'] });
-      setPhase({ kind: 'tracking', runId: started.id, stage: describeOneTapRun(started), queue: null, tick: 0 });
+      setPhase({
+        kind: 'tracking',
+        runId: started.id,
+        stage: describeOneTapRun(started),
+        queue: null,
+        fileName: imported.filename,
+        printerId: selected.target_kind === 'specific_printer' ? selected.target_printer_id : null,
+        sliceJobId: started.slice_job_id ?? null,
+        slicePercent: null,
+        tick: 0,
+      });
     } catch (error) {
       setPhase({ kind: 'error', message: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -167,25 +180,37 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
   // Follow the run (and its print-queue entry) until the printer starts or it ends.
   useEffect(() => {
     if (phase.kind !== 'tracking' || isOneTapStageFinal(phase.stage)) return;
-    const { runId } = phase;
+    const { runId, fileName, printerId, sliceJobId } = phase;
     const timer = setTimeout(async () => {
       let stage: OneTapStage | null = null;
       let queue: { reason: string | null; manualStart: boolean } | null = null;
+      let slicePercent: number | null = null;
       try {
         stage = describeOneTapRun(await slicingApi.getRun(runId));
+        if (stage.kind === 'slicing' && sliceJobId) {
+          const job = await slicingApi.job(sliceJobId).catch(() => null);
+          slicePercent = job?.progress ? Math.round(job.progress.total_percent) : null;
+        }
         if (stage.kind === 'waiting' && stage.queueItemId) {
           const item = await queueApi.getQueueItem(stage.queueItemId);
           queue = { reason: item.waiting_reason ?? null, manualStart: Boolean(item.manual_start) };
+        }
+        // The server can lose track of a run's jobs while the printer already prints the file.
+        if ((stage.kind === 'dispatching' || stage.kind === 'waiting') && printerId) {
+          const status = await printersApi.getPrinterStatus(printerId).catch(() => null);
+          if (printerIsPrintingFile(status, fileName)) {
+            stage = { kind: 'printing', printerName: printersQuery.data?.find(item => item.id === printerId)?.name ?? null };
+          }
         }
       } catch {
         // Transient error: keep polling with the last known stage.
       }
       setPhase(current => current.kind === 'tracking' && current.runId === runId
-        ? { ...current, stage: stage ?? current.stage, queue: stage ? queue : current.queue, tick: current.tick + 1 }
+        ? { ...current, stage: stage ?? current.stage, queue: stage ? queue : current.queue, slicePercent, tick: current.tick + 1 }
         : current);
     }, 3000);
     return () => clearTimeout(timer);
-  }, [phase]);
+  }, [phase, printersQuery.data]);
 
   const [starting, setStarting] = useState(false);
   const startQueuedNow = async (queueItemId: number) => {
@@ -231,7 +256,10 @@ export function OneTapPrintPanel({ modelId, instance }: { modelId: number; insta
     const { stage } = phase;
     switch (stage.kind) {
       case 'queued': statusText = s.stepQueued; working = true; break;
-      case 'slicing': statusText = s.stepSlicing; working = true; break;
+      case 'slicing':
+        statusText = phase.slicePercent != null ? `${s.stepSlicing} ${phase.slicePercent}%` : s.stepSlicing;
+        working = true;
+        break;
       case 'dispatching': statusText = s.stepDispatching; working = true; break;
       case 'waiting':
         statusText = phase.queue?.reason ? fill(s.waitingReason, { reason: phase.queue.reason }) : s.waitingInQueue;

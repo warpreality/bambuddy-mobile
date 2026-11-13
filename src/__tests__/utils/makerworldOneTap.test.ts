@@ -82,3 +82,19 @@ describe('describeOneTapRun', () => {
       .toEqual({ kind: 'failed', error: 'offline' });
   });
 });
+
+import { printerIsPrintingFile } from '@/utils/makerworldOneTap';
+
+describe('printerIsPrintingFile', () => {
+  it('matches the printer task to the imported file (real server names)', () => {
+    expect(printerIsPrintingFile({ state: 'RUNNING', subtask_name: 'Reinigung_Gewindespindel_1fach', gcode_file: 'Metadata/plate_1.gcode' },
+      'Reinigung Gewindespindel 1fach.3mf')).toBe(true);
+    expect(printerIsPrintingFile({ state: 'PREPARE', subtask_name: 'Reinigung_Gewindespindel_1fach' },
+      'Reinigung Gewindespindel 1fach.gcode.3mf')).toBe(true);
+  });
+  it('ignores idle printers and other files', () => {
+    expect(printerIsPrintingFile({ state: 'FINISH', subtask_name: 'Reinigung_Gewindespindel_1fach' }, 'Reinigung Gewindespindel 1fach.3mf')).toBe(false);
+    expect(printerIsPrintingFile({ state: 'RUNNING', subtask_name: 'Other_model' }, 'Reinigung Gewindespindel 1fach.3mf')).toBe(false);
+    expect(printerIsPrintingFile(null, 'x.3mf')).toBe(false);
+  });
+});

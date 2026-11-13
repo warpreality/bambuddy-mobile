@@ -114,3 +114,35 @@ export function isOneTapStageFinal(stage: OneTapStage) {
 export function isIncompatible3mfError(error: string | null | undefined) {
   return Boolean(error && /invalid parameter value\(s\) included in the 3mf/i.test(error));
 }
+
+// ---------------------------------------------------------------------------
+// Printer-side confirmation
+//
+// The server can lose track of a run's jobs (e.g. stale jobs re-attached to a
+// reused run id) while the printer is already printing the file. As a
+// fallback, confirm the print on the pipeline's target printer by comparing
+// the printer's current task with the imported file name.
+
+const PRINTING_STATES = new Set(['RUNNING', 'PREPARE', 'SLICING', 'PAUSE', 'PRINTING']);
+
+function normalizeTaskName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/^.*[\\/]/, '')
+    .replace(/\.gcode\.3mf$|\.3mf$|\.gcode$/g, '')
+    .replace(/[\s_\-.]+/g, ' ')
+    .trim();
+}
+
+export function printerIsPrintingFile(
+  status: { state?: string | null; subtask_name?: string | null; current_print?: string | null; gcode_file?: string | null } | null | undefined,
+  fileName: string | null | undefined,
+) {
+  if (!status || !fileName) return false;
+  if (!PRINTING_STATES.has(String(status.state ?? '').toUpperCase())) return false;
+  const wanted = normalizeTaskName(fileName);
+  if (!wanted) return false;
+  return [status.subtask_name, status.current_print, status.gcode_file]
+    .filter((value): value is string => Boolean(value))
+    .some(value => normalizeTaskName(value) === wanted);
+}
