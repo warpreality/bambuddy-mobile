@@ -12,6 +12,7 @@ jest.mock('@/screens/QueueScreen', () => () => null);
 jest.mock('@/screens/ArchivesScreen', () => () => null);
 jest.mock('@/screens/FilesScreen', () => () => null);
 jest.mock('@/screens/MoreScreen', () => () => null);
+jest.mock('@/screens/CatalogScreen', () => () => null);
 jest.mock('@/components/settings/SmartPlugPowerControls', () => ({
   QuickSmartPlugPanel: () => require('react').createElement(require('react-native').Text, { accessibilityRole: 'button' }, 'Quick power switches'),
 }));

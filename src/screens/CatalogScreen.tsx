@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   FlatList,
   Image,
@@ -16,7 +17,11 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Download, Heart, Search, X } from 'lucide-react-native';
+import { Bookmark, CircleUserRound, Download, Heart, Search, Star, X } from 'lucide-react-native';
+import { makerworldAccountApi, MakerworldAuthError } from '@/api/makerworldAccount';
+import { MakerWorldSignInSheet } from '@/components/makerworld/MakerWorldSignInSheet';
+import { useToast } from '@/contexts/ToastContext';
+import { useMakerworldAccount } from '@/store/makerworldAccountStore';
 import {
   CATALOG_PAGE_SIZE,
   formatCount,
@@ -29,10 +34,10 @@ import type { RootStackParamList } from '@/navigation/types';
 import { useMakerworldFavorites } from '@/store/makerworldFavoritesStore';
 import { useTheme } from '@/theme';
 import { borderRadius, fontSize, fontWeight, spacing } from '@/theme/tokens';
-import { useCatalogStrings } from './makerworldCatalogStrings';
+import { fill, useCatalogStrings } from './makerworldCatalogStrings';
 
-type Feed = CatalogFeed | 'favorites';
-const FEEDS: Feed[] = ['trending', 'popular', 'top', 'newest', 'favorites'];
+type Feed = CatalogFeed | 'bookmarks' | 'favorites';
+const FEEDS: Feed[] = ['trending', 'popular', 'top', 'newest', 'bookmarks', 'favorites'];
 const DEFAULT_HEADER_HEIGHT = 112;
 
 export default function CatalogScreen() {
@@ -49,6 +54,22 @@ export default function CatalogScreen() {
   const favorites = useMakerworldFavorites(state => state.items);
   const loadFavorites = useMakerworldFavorites(state => state.load);
   useEffect(() => { void loadFavorites(); }, [loadFavorites]);
+
+  const { showToast } = useToast();
+  const account = useMakerworldAccount(state => state.user);
+  const accountToken = useMakerworldAccount(state => state.token);
+  const loadAccount = useMakerworldAccount(state => state.load);
+  const signOut = useMakerworldAccount(state => state.signOut);
+  const expireAccount = useMakerworldAccount(state => state.expire);
+  const [signInOpen, setSignInOpen] = useState(false);
+  useEffect(() => { void loadAccount(); }, [loadAccount]);
+  const onAccountPress = () => {
+    if (!account) { setSignInOpen(true); return; }
+    Alert.alert(s.signInTitle, fill(s.signedInAs, { name: account.name }), [
+      { text: s.cancel, style: 'cancel' },
+      { text: s.signOut, style: 'destructive', onPress: () => { void signOut().then(() => showToast(s.signedOut, 'success')); } },
+    ]);
+  };
 
   // Debounce typing.
   useEffect(() => {
@@ -72,9 +93,9 @@ export default function CatalogScreen() {
   );
 
   const feedLabels: Record<Feed, string> = {
-    trending: s.feedTrending, popular: s.feedPopular, top: s.feedTop, newest: s.feedNewest, favorites: s.feedFavorites,
+    trending: s.feedTrending, popular: s.feedPopular, top: s.feedTop, newest: s.feedNewest, bookmarks: s.feedBookmarks, favorites: s.feedFavorites,
   };
-  const remoteFeed: CatalogFeed = feed === 'favorites' ? 'trending' : feed;
+  const remoteFeed: CatalogFeed = feed === 'favorites' || feed === 'bookmarks' ? 'trending' : feed;
 
   const query = useInfiniteQuery({
     queryKey: ['makerworldCatalog', remoteFeed, keyword],
@@ -84,9 +105,25 @@ export default function CatalogScreen() {
       const loaded = pages.length * CATALOG_PAGE_SIZE;
       return last.hits.length > 0 && loaded < last.total ? loaded : undefined;
     },
-    enabled: feed !== 'favorites',
+    enabled: feed !== 'favorites' && feed !== 'bookmarks',
     staleTime: 5 * 60 * 1000,
   });
+
+  const bookmarksQuery = useInfiniteQuery({
+    queryKey: ['makerworldBookmarks', account?.uid ?? null],
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => makerworldAccountApi.bookmarks(accountToken!, pageParam, CATALOG_PAGE_SIZE, signal),
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.length * CATALOG_PAGE_SIZE;
+      return last.hits.length > 0 && loaded < last.total ? loaded : undefined;
+    },
+    enabled: feed === 'bookmarks' && Boolean(accountToken),
+    staleTime: 60 * 1000,
+  });
+  useEffect(() => {
+    if (bookmarksQuery.error instanceof MakerworldAuthError) void expireAccount();
+  }, [bookmarksQuery.error, expireAccount]);
+  const activeQuery = feed === 'bookmarks' ? bookmarksQuery : query;
 
   const items = useMemo(() => {
     if (feed === 'favorites') {
@@ -96,12 +133,13 @@ export default function CatalogScreen() {
         : favorites;
     }
     const seen = new Set<number>();
-    return (query.data?.pages ?? []).flatMap(page => page.hits).filter(hit => {
+    const needle = feed === 'bookmarks' ? keyword.toLowerCase() : '';
+    return (activeQuery.data?.pages ?? []).flatMap(page => page.hits).filter(hit => {
       if (seen.has(hit.id)) return false;
       seen.add(hit.id);
-      return true;
+      return !needle || hit.title.toLowerCase().includes(needle) || Boolean(hit.designCreator?.name?.toLowerCase().includes(needle));
     });
-  }, [feed, favorites, keyword, query.data]);
+  }, [feed, favorites, keyword, activeQuery.data]);
 
   const selectFeed = (next: Feed) => {
     setFeed(next);
@@ -120,7 +158,7 @@ export default function CatalogScreen() {
       <Image source={{ uri: item.cover }} style={{ width: cardWidth, height: cardWidth, backgroundColor: colors.surfaceElevated }} />
       {favoriteIds.has(item.id) ? (
         <View style={styles.favoriteBadge}>
-          <Heart size={14} color="#fff" fill="#ff4d5e" />
+          <Star size={14} color="#fff" fill="#f5b301" />
         </View>
       ) : null}
       <View style={styles.cardBody}>
@@ -139,19 +177,31 @@ export default function CatalogScreen() {
     </Pressable>
   );
 
-  const empty = feed === 'favorites' ? (
+  const empty = feed === 'bookmarks' && !accountToken ? (
     <View style={styles.state}>
-      <Heart size={32} color={colors.textTertiary} />
+      <Bookmark size={32} color={colors.textTertiary} />
+      <Text style={[styles.meta, styles.centerText, { color: colors.textSecondary }]}>{s.signInToReact}</Text>
+      <PrimaryButton label={s.signIn} onPress={() => setSignInOpen(true)} />
+    </View>
+  ) : feed === 'bookmarks' && !keyword && bookmarksQuery.isSuccess ? (
+    <View style={styles.state}>
+      <Bookmark size={32} color={colors.textTertiary} />
+      <Text style={[styles.stateTitle, { color: colors.text }]}>{s.noBookmarks}</Text>
+      <Text style={[styles.meta, { color: colors.textSecondary }]}>{s.noBookmarksHint}</Text>
+    </View>
+  ) : feed === 'favorites' ? (
+    <View style={styles.state}>
+      <Star size={32} color={colors.textTertiary} />
       <Text style={[styles.stateTitle, { color: colors.text }]}>{keyword ? s.nothingFound : s.noFavorites}</Text>
       <Text style={[styles.meta, { color: colors.textSecondary }]}>{keyword ? s.nothingFoundHint : s.noFavoritesHint}</Text>
     </View>
-  ) : query.isPending ? (
+  ) : activeQuery.isPending ? (
     <ActivityIndicator style={styles.state} color={colors.accent} />
-  ) : query.isError ? (
+  ) : activeQuery.isError ? (
     <View style={styles.state}>
       <Text style={[styles.stateTitle, { color: colors.text }]}>{s.loadFailed}</Text>
-      <Text style={[styles.meta, { color: colors.textSecondary }]}>{query.error.message}</Text>
-      <PrimaryButton label={s.retry} variant="secondary" onPress={() => void query.refetch()} />
+      <Text style={[styles.meta, { color: colors.textSecondary }]}>{activeQuery.error.message}</Text>
+      <PrimaryButton label={s.retry} variant="secondary" onPress={() => void activeQuery.refetch()} />
     </View>
   ) : (
     <View style={styles.state}>
@@ -176,17 +226,17 @@ export default function CatalogScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
         onEndReachedThreshold={0.6}
-        onEndReached={() => { if (feed !== 'favorites' && query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage(); }}
-        refreshControl={feed === 'favorites' ? undefined : (
+        onEndReached={() => { if (feed !== 'favorites' && activeQuery.hasNextPage && !activeQuery.isFetchingNextPage) void activeQuery.fetchNextPage(); }}
+        refreshControl={feed === 'favorites' || (feed === 'bookmarks' && !accountToken) ? undefined : (
           <RefreshControl
-            refreshing={query.isRefetching && !query.isFetchingNextPage}
-            onRefresh={() => void query.refetch()}
+            refreshing={activeQuery.isRefetching && !activeQuery.isFetchingNextPage}
+            onRefresh={() => void activeQuery.refetch()}
             tintColor={colors.accent}
             progressViewOffset={headerHeight}
           />
         )}
         ListEmptyComponent={empty}
-        ListFooterComponent={query.isFetchingNextPage ? <ActivityIndicator style={styles.footer} color={colors.accent} /> : null}
+        ListFooterComponent={activeQuery.isFetchingNextPage ? <ActivityIndicator style={styles.footer} color={colors.accent} /> : null}
       />
 
       <Animated.View
@@ -196,7 +246,8 @@ export default function CatalogScreen() {
         }}
         style={[styles.header, { backgroundColor: colors.background, transform: [{ translateY: headerTranslate }] }]}
       >
-        <View style={[styles.search, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+        <View style={styles.searchRow}>
+        <View style={[styles.search, styles.flex, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
           <Search size={18} color={colors.textSecondary} />
           <TextInput
             value={input}
@@ -215,6 +266,18 @@ export default function CatalogScreen() {
             </Pressable>
           ) : null}
         </View>
+        <Pressable
+          onPress={onAccountPress}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={account ? fill(s.signedInAs, { name: account.name }) : s.signIn}
+          style={[styles.accountButton, { backgroundColor: colors.surfaceElevated, borderColor: account ? colors.accent : colors.border }]}
+        >
+          {account?.avatar
+            ? <Image source={{ uri: account.avatar }} style={styles.accountAvatar} />
+            : <CircleUserRound size={22} color={account ? colors.accent : colors.textSecondary} />}
+        </Pressable>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {FEEDS.map(item => {
             const active = item === feed;
@@ -224,7 +287,8 @@ export default function CatalogScreen() {
                 onPress={() => selectFeed(item)}
                 style={[styles.chip, { backgroundColor: active ? colors.accent : colors.surfaceElevated, borderColor: active ? colors.accent : colors.border }]}
               >
-                {item === 'favorites' ? <Heart size={14} color={active ? '#fff' : colors.text} fill={active ? '#fff' : 'transparent'} /> : null}
+                {item === 'favorites' ? <Star size={14} color={active ? '#fff' : colors.text} fill={active ? '#fff' : 'transparent'} /> : null}
+                {item === 'bookmarks' ? <Bookmark size={14} color={active ? '#fff' : colors.text} fill={active ? '#fff' : 'transparent'} /> : null}
                 <Text style={[styles.chipText, { color: active ? '#fff' : colors.text }]}>
                   {feedLabels[item]}{item === 'favorites' && favorites.length ? ` · ${favorites.length}` : ''}
                 </Text>
@@ -233,6 +297,11 @@ export default function CatalogScreen() {
           })}
         </ScrollView>
       </Animated.View>
+      <MakerWorldSignInSheet
+        visible={signInOpen}
+        onClose={() => setSignInOpen(false)}
+        onSignedIn={name => showToast(fill(s.signedInAs, { name }), 'success')}
+      />
     </View>
   );
 }
@@ -261,6 +330,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     height: 44,
   },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  accountButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  accountAvatar: { width: 42, height: 42, borderRadius: 21 },
+  centerText: { textAlign: 'center', paddingHorizontal: spacing.lg },
   searchInput: { flex: 1, fontSize: fontSize.base, paddingVertical: 0 },
   chips: { gap: spacing.sm },
   chip: {
