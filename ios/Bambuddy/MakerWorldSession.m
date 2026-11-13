@@ -46,14 +46,34 @@ RCT_EXPORT_METHOD(readToken:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromise
 RCT_EXPORT_METHOD(clear:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
   dispatch_async(dispatch_get_main_queue(), ^{
+    // The app-wide cookie jar may hold a copy of the session (WebViews with shared
+    // cookies sync into it), which would sign the user straight back in.
+    NSHTTPCookieStorage *jar = NSHTTPCookieStorage.sharedHTTPCookieStorage;
+    for (NSHTTPCookie *cookie in [jar.cookies copy]) {
+      if (MWIsAccountDomain(cookie.domain)) [jar deleteCookie:cookie];
+    }
     WKWebsiteDataStore *store = WKWebsiteDataStore.defaultDataStore;
-    NSSet *types = [WKWebsiteDataStore allWebsiteDataTypes];
-    [store fetchDataRecordsOfTypes:types completionHandler:^(NSArray<WKWebsiteDataRecord *> *records) {
-      NSMutableArray *ours = [NSMutableArray array];
-      for (WKWebsiteDataRecord *record in records) {
-        if (MWIsAccountDomain(record.displayName)) [ours addObject:record];
+    WKHTTPCookieStore *cookieStore = store.httpCookieStore;
+    // Delete the WebView cookies explicitly, then the rest of the site data.
+    [cookieStore getAllCookies:^(NSArray<NSHTTPCookie *> *cookies) {
+      dispatch_group_t group = dispatch_group_create();
+      __block NSUInteger removed = 0;
+      for (NSHTTPCookie *cookie in cookies) {
+        if (!MWIsAccountDomain(cookie.domain)) continue;
+        removed++;
+        dispatch_group_enter(group);
+        [cookieStore deleteCookie:cookie completionHandler:^{ dispatch_group_leave(group); }];
       }
-      [store removeDataOfTypes:types forDataRecords:ours completionHandler:^{ resolve(@(ours.count)); }];
+      dispatch_group_notify(group, dispatch_get_main_queue(), ^{
+        NSSet *types = [WKWebsiteDataStore allWebsiteDataTypes];
+        [store fetchDataRecordsOfTypes:types completionHandler:^(NSArray<WKWebsiteDataRecord *> *records) {
+          NSMutableArray *ours = [NSMutableArray array];
+          for (WKWebsiteDataRecord *record in records) {
+            if (MWIsAccountDomain(record.displayName)) [ours addObject:record];
+          }
+          [store removeDataOfTypes:types forDataRecords:ours completionHandler:^{ resolve(@(removed)); }];
+        }];
+      });
     }];
   });
 }

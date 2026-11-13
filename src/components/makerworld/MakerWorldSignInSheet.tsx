@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { makerworldSession, MakerworldAuthError } from '@/api/makerworldAccount';
 import { useMakerworldAccount } from '@/store/makerworldAccountStore';
+import { MAKERWORLD_SIGN_IN_CLEANUP_JS } from '@/utils/makerworldSignInCleanup';
 import { useTheme } from '@/theme';
 import { fontSize, fontWeight, spacing } from '@/theme/tokens';
 import { useCatalogStrings } from '@/screens/makerworldCatalogStrings';
@@ -72,7 +73,8 @@ export function MakerWorldSignInSheet({ visible, onClose, onSignedIn }: {
           {visible ? (
             <WebView
               source={{ uri: SIGN_IN_URL }}
-              sharedCookiesEnabled
+              injectedJavaScriptBeforeContentLoaded={MAKERWORLD_SIGN_IN_CLEANUP_JS}
+              injectedJavaScriptBeforeContentLoadedForMainFrameOnly={false}
               onNavigationStateChange={() => void check()}
               startInLoadingState
               style={styles.flex}
