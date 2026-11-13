@@ -1,0 +1,227 @@
+{
+  "native.07c134f5d92753b4": {
+    "english": "Bookmarks",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 100,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.feedBookmarks",
+        "source": "'Bookmarks'"
+      }
+    ]
+  },
+  "native.26043ba4cb1fa91b": {
+    "english": "Signed out of MakerWorld",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 93,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.signedOut",
+        "source": "'Signed out of MakerWorld'"
+      }
+    ]
+  },
+  "native.3cffc06649237174": {
+    "english": "MakerWorld sign-in expired",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/api/makerworldAccount.ts",
+        "line": 18,
+        "kind": "indirect-app-prose",
+        "owner": "module",
+        "source": "'MakerWorld sign-in expired'"
+      }
+    ]
+  },
+  "native.4b6324e7b190d185": {
+    "english": "Open a model and tap “Bookmark”.",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 102,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.noBookmarksHint",
+        "source": "'Open a model and tap “Bookmark”.'"
+      }
+    ]
+  },
+  "native.55cb72bdac4b79fc": {
+    "english": "MakerWorld sign-in expired. Sign in again.",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 95,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.sessionExpired",
+        "source": "'MakerWorld sign-in expired. Sign in again.'"
+      }
+    ]
+  },
+  "native.5b55a0b5be201e1e": {
+    "english": "Sign in to MakerWorld to like and bookmark models.",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 94,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.signInToReact",
+        "source": "'Sign in to MakerWorld to like and bookmark models.'"
+      }
+    ]
+  },
+  "native.61466bc248cf3ea3": {
+    "english": "Bookmarked",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 99,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.bookmarked",
+        "source": "'Bookmarked'"
+      }
+    ]
+  },
+  "native.6c8b0c01d7240d7d": {
+    "english": "MakerWorld account",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 90,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.signInTitle",
+        "source": "'MakerWorld account'"
+      }
+    ]
+  },
+  "native.987faae910cc21e7": {
+    "english": "Sign in on the page below. The app closes it by itself once you are in.",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 91,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.signInHint",
+        "source": "'Sign in on the page below. The app closes it by itself once you are in.'"
+      }
+    ]
+  },
+  "native.a28661986bfca227": {
+    "english": "No bookmarks yet",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 101,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.noBookmarks",
+        "source": "'No bookmarks yet'"
+      }
+    ]
+  },
+  "native.c106f141731ecfc5": {
+    "english": "MakerWorld did not save the change. Try again.",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 96,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.actionFailed",
+        "source": "'MakerWorld did not save the change. Try again.'"
+      }
+    ]
+  },
+  "native.d2a087fa933f967c": {
+    "english": "No MakerWorld collection",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/api/makerworldAccount.ts",
+        "line": 111,
+        "kind": "app-error",
+        "owner": "makerworldAccountApi",
+        "source": "'No MakerWorld collection'"
+      }
+    ]
+  },
+  "native.e9c10b9782fd53ee": {
+    "english": "Bookmark",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 98,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.bookmark",
+        "source": "'Bookmark'"
+      }
+    ]
+  },
+  "native.f3b0c912744f76e8": {
+    "english": "Signed in as {{name}}",
+    "context": "shared",
+    "placeholders": [
+      "name"
+    ],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 92,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.signedInAs",
+        "source": "'Signed in as {{name}}'"
+      }
+    ]
+  },
+  "native.fc4a4a68467acd3f": {
+    "english": "Like",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 97,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.like",
+        "source": "'Like'"
+      }
+    ]
+  }
+}

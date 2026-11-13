@@ -85,6 +85,21 @@ function buildStrings(t: ReturnType<typeof useTranslation>['t']) {
     slicingPlate: t('makerworldCatalog.slicingPlate', { defaultValue: 'Slicing plate {{plate}}…' }),
     incompatible3mf: t('makerworldCatalog.incompatible3mf', { defaultValue: 'The slicer on the Bambuddy server cannot read the settings saved in this model (it was made in a newer Bambu Studio). Update the slicer on the server or try another print profile.' }),
     showRuns: t('makerworldCatalog.showRuns', { defaultValue: 'Pipeline runs' }),
+    signIn: t('makerworldCatalog.signIn', { defaultValue: 'Sign in' }),
+    signOut: t('makerworldCatalog.signOut', { defaultValue: 'Sign out' }),
+    signInTitle: t('makerworldCatalog.signInTitle', { defaultValue: 'MakerWorld account' }),
+    signInHint: t('makerworldCatalog.signInHint', { defaultValue: 'Sign in on the page below. The app closes it by itself once you are in.' }),
+    signedInAs: t('makerworldCatalog.signedInAs', { defaultValue: 'Signed in as {{name}}' }),
+    signedOut: t('makerworldCatalog.signedOut', { defaultValue: 'Signed out of MakerWorld' }),
+    signInToReact: t('makerworldCatalog.signInToReact', { defaultValue: 'Sign in to MakerWorld to like and bookmark models.' }),
+    sessionExpired: t('makerworldCatalog.sessionExpired', { defaultValue: 'MakerWorld sign-in expired. Sign in again.' }),
+    actionFailed: t('makerworldCatalog.actionFailed', { defaultValue: 'MakerWorld did not save the change. Try again.' }),
+    like: t('makerworldCatalog.like', { defaultValue: 'Like' }),
+    bookmark: t('makerworldCatalog.bookmark', { defaultValue: 'Bookmark' }),
+    bookmarked: t('makerworldCatalog.bookmarked', { defaultValue: 'Bookmarked' }),
+    feedBookmarks: t('makerworldCatalog.feedBookmarks', { defaultValue: 'Bookmarks' }),
+    noBookmarks: t('makerworldCatalog.noBookmarks', { defaultValue: 'No bookmarks yet' }),
+    noBookmarksHint: t('makerworldCatalog.noBookmarksHint', { defaultValue: 'Open a model and tap “Bookmark”.' }),
   };
 }
 

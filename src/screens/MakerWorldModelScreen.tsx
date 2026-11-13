@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
-import { Download, ExternalLink, Heart, Printer } from 'lucide-react-native';
+import { Download, ExternalLink, Printer, Star } from 'lucide-react-native';
 import { useToast } from '@/contexts/ToastContext';
 import { useMakerworldFavorites } from '@/store/makerworldFavoritesStore';
 import {
@@ -25,6 +25,7 @@ import {
   type CatalogInstance,
 } from '@/api/makerworldCatalog';
 import { PrimaryButton } from '@/components/common/AppUI';
+import { MakerWorldSocialBar } from '@/components/makerworld/MakerWorldSocialBar';
 import { OneTapPrintPanel } from '@/components/makerworld/OneTapPrintPanel';
 import type { RootNavigationProp, RootStackParamList } from '@/navigation/types';
 import { useTheme } from '@/theme';
@@ -95,11 +96,11 @@ export default function MakerWorldModelScreen() {
           accessibilityRole="button"
           accessibilityLabel={favorite ? s.inFavorites : s.addFavorite}
         >
-          <Heart size={22} color={favorite ? colors.error : colors.text} fill={favorite ? colors.error : 'transparent'} />
+          <Star size={22} color={favorite ? colors.warning : colors.text} fill={favorite ? colors.warning : 'transparent'} />
         </Pressable>
       ),
     });
-  }, [navigation, params.title, s.title, s.inFavorites, s.addFavorite, favorite, design, onToggleFavorite, colors.error, colors.text]);
+  }, [navigation, params.title, s.title, s.inFavorites, s.addFavorite, favorite, design, onToggleFavorite, colors.warning, colors.text]);
 
   const description = htmlToText(design?.summary);
   const units = { h: s.hoursShort, m: s.minutesShort };
@@ -149,19 +150,22 @@ export default function MakerWorldModelScreen() {
           <View style={styles.row}>
             <Stat icon={<Download size={14} color={colors.textSecondary} />} value={formatCount(design.downloadCount)} />
             <Stat icon={<Printer size={14} color={colors.textSecondary} />} value={formatCount(design.printCount)} />
-            <Stat icon={<Heart size={14} color={colors.textSecondary} />} value={formatCount(design.likeCount)} />
           </View>
+          <MakerWorldSocialBar
+            designId={design.id}
+            initial={{ likeCount: design.likeCount, collectionCount: design.collectionCount }}
+          />
           <Pressable
             onPress={() => void onToggleFavorite()}
             accessibilityRole="button"
             style={({ pressed }) => [styles.favorite, {
-              borderColor: favorite ? colors.error : colors.border,
+              borderColor: favorite ? colors.warning : colors.border,
               backgroundColor: favorite ? colors.surfaceElevated : 'transparent',
               opacity: pressed ? 0.7 : 1,
             }]}
           >
-            <Heart size={18} color={favorite ? colors.error : colors.text} fill={favorite ? colors.error : 'transparent'} />
-            <Text style={[styles.favoriteText, { color: favorite ? colors.error : colors.text }]}>
+            <Star size={18} color={favorite ? colors.warning : colors.text} fill={favorite ? colors.warning : 'transparent'} />
+            <Text style={[styles.favoriteText, { color: favorite ? colors.warning : colors.text }]}>
               {favorite ? s.inFavorites : s.addFavorite}
             </Text>
           </Pressable>
