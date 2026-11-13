@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "Avvia ora",
+  "native.6a713fff72aa8ea2": "Stampa su {{printer}}!",
+  "native.93559c971847c9fc": "Stampa avviata!",
+  "native.b0ca62f54b85b88b": "Apri coda",
+  "native.b6425efc2eb51f3f": "Nella coda di stampa, in attesa della stampante",
+  "native.bacc1c69cabc51bd": "Lo slicer del server Bambuddy non riesce a leggere le impostazioni salvate in questo modello (creato con una versione più recente di Bambu Studio). Aggiorna lo slicer sul server o prova un altro profilo di stampa.",
+  "native.dad70701506fe306": "Nella coda di stampa: {{reason}}",
+  "native.ffa719478f4919ad": "La coda trattiene questa stampa finché non viene avviata manualmente."
+}

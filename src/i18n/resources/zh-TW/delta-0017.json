@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "立即開始",
+  "native.6a713fff72aa8ea2": "正在 {{printer}} 上列印！",
+  "native.93559c971847c9fc": "已開始列印！",
+  "native.b0ca62f54b85b88b": "開啟佇列",
+  "native.b6425efc2eb51f3f": "在列印佇列中，等待印表機",
+  "native.bacc1c69cabc51bd": "Bambuddy 伺服器上的切片器無法讀取此模型中儲存的設定（由較新版本的 Bambu Studio 製作）。請更新伺服器上的切片器，或嘗試其他列印設定檔。",
+  "native.dad70701506fe306": "列印佇列：{{reason}}",
+  "native.ffa719478f4919ad": "佇列會保留此列印，直到手動開始。"
+}

@@ -1,0 +1,126 @@
+{
+  "native.408c7599de3f73f7": {
+    "english": "Start now",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 80,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.startNow",
+        "source": "'Start now'"
+      }
+    ]
+  },
+  "native.6a713fff72aa8ea2": {
+    "english": "Printing on {{printer}}!",
+    "context": "shared",
+    "placeholders": [
+      "printer"
+    ],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 76,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.printingOn",
+        "source": "'Printing on {{printer}}!'"
+      }
+    ]
+  },
+  "native.93559c971847c9fc": {
+    "english": "Printing started!",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 75,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.printStarted",
+        "source": "'Printing started!'"
+      }
+    ]
+  },
+  "native.b0ca62f54b85b88b": {
+    "english": "Open queue",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 81,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.openQueue",
+        "source": "'Open queue'"
+      }
+    ]
+  },
+  "native.b6425efc2eb51f3f": {
+    "english": "In the print queue, waiting for the printer",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 77,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.waitingInQueue",
+        "source": "'In the print queue, waiting for the printer'"
+      }
+    ]
+  },
+  "native.bacc1c69cabc51bd": {
+    "english": "The slicer on the Bambuddy server cannot read the settings saved in this model (it was made in a newer Bambu Studio). Update the slicer on the server or try another print profile.",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 82,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.incompatible3mf",
+        "source": "'The slicer on the Bambuddy server cannot read the settings saved in this model (it was made in a newer Bambu Studio). Update the slicer on the server or try another print profile.'"
+      }
+    ]
+  },
+  "native.dad70701506fe306": {
+    "english": "In the print queue: {{reason}}",
+    "context": "shared",
+    "placeholders": [
+      "reason"
+    ],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 78,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.waitingReason",
+        "source": "'In the print queue: {{reason}}'"
+      }
+    ]
+  },
+  "native.ffa719478f4919ad": {
+    "english": "The queue holds this print until it is started manually.",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 79,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.manualStartHint",
+        "source": "'The queue holds this print until it is started manually.'"
+      }
+    ]
+  }
+}

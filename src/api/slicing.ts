@@ -76,6 +76,8 @@ export const slicingApi = {
     request<SliceJobEnqueueResponse>(`${sourcePath(source)}/slice`, post(body)),
   job: (id: number) => request<SliceJobState>(`/slice-jobs/${id}`),
   pipelines: () => request<SlicerPipelinesListResponse>('/slicer-pipelines/'),
+  /** One run with its dispatch jobs (queue entries, assigned printers). */
+  getRun: (id: number) => request<PipelineRun>(`/pipeline-runs/${id}`),
   create: (body: SlicerPipelineCreateRequest) =>
     request<SlicerPipeline>('/slicer-pipelines/', post(body)),
   update: (id: number, body: SlicerPipelineUpdateRequest) =>

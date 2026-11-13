@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "Iniciar agora",
+  "native.6a713fff72aa8ea2": "Imprimindo em {{printer}}!",
+  "native.93559c971847c9fc": "Impressão iniciada!",
+  "native.b0ca62f54b85b88b": "Abrir fila",
+  "native.b6425efc2eb51f3f": "Na fila de impressão, aguardando a impressora",
+  "native.bacc1c69cabc51bd": "O fatiador do servidor Bambuddy não consegue ler as configurações salvas neste modelo (feito em uma versão mais nova do Bambu Studio). Atualize o fatiador no servidor ou tente outro perfil de impressão.",
+  "native.dad70701506fe306": "Na fila de impressão: {{reason}}",
+  "native.ffa719478f4919ad": "A fila mantém esta impressão até que seja iniciada manualmente."
+}

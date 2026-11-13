@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "Jetzt starten",
+  "native.6a713fff72aa8ea2": "Druck läuft auf {{printer}}!",
+  "native.93559c971847c9fc": "Druck gestartet!",
+  "native.b0ca62f54b85b88b": "Warteschlange öffnen",
+  "native.b6425efc2eb51f3f": "In der Druckwarteschlange, wartet auf den Drucker",
+  "native.bacc1c69cabc51bd": "Der Slicer auf dem Bambuddy-Server kann die in diesem Modell gespeicherten Einstellungen nicht lesen (erstellt mit einer neueren Bambu Studio-Version). Aktualisiere den Slicer auf dem Server oder wähle ein anderes Druckprofil.",
+  "native.dad70701506fe306": "In der Druckwarteschlange: {{reason}}",
+  "native.ffa719478f4919ad": "Die Warteschlange hält diesen Druck, bis er manuell gestartet wird."
+}

@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "Starta nu",
+  "native.6a713fff72aa8ea2": "Skriver ut på {{printer}}!",
+  "native.93559c971847c9fc": "Utskriften har startat!",
+  "native.b0ca62f54b85b88b": "Öppna kön",
+  "native.b6425efc2eb51f3f": "I utskriftskön, väntar på skrivaren",
+  "native.bacc1c69cabc51bd": "Slicern på Bambuddy-servern kan inte läsa inställningarna som sparats i den här modellen (skapad i en nyare Bambu Studio). Uppdatera slicern på servern eller prova en annan utskriftsprofil.",
+  "native.dad70701506fe306": "I utskriftskön: {{reason}}",
+  "native.ffa719478f4919ad": "Kön håller kvar utskriften tills den startas manuellt."
+}

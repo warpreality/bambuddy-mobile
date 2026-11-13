@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "Şimdi başlat",
+  "native.6a713fff72aa8ea2": "{{printer}} üzerinde yazdırılıyor!",
+  "native.93559c971847c9fc": "Baskı başladı!",
+  "native.b0ca62f54b85b88b": "Kuyruğu aç",
+  "native.b6425efc2eb51f3f": "Baskı kuyruğunda, yazıcı bekleniyor",
+  "native.bacc1c69cabc51bd": "Bambuddy sunucusundaki dilimleyici bu modelde kayıtlı ayarları okuyamıyor (daha yeni bir Bambu Studio ile yapılmış). Sunucudaki dilimleyiciyi güncelleyin veya başka bir baskı profili deneyin.",
+  "native.dad70701506fe306": "Baskı kuyruğunda: {{reason}}",
+  "native.ffa719478f4919ad": "Kuyruk bu baskıyı elle başlatılana kadar bekletir."
+}

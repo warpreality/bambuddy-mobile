@@ -1,0 +1,66 @@
+{
+  "native.111af9271f788ea7": {
+    "english": "This model has several plates. Pick the one to print.",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 83,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.choosePlateHint",
+        "source": "'This model has several plates. Pick the one to print.'"
+      }
+    ]
+  },
+  "native.5d064430b42bd7c9": {
+    "english": "Plate {{plate}}",
+    "context": "shared",
+    "placeholders": [
+      "plate"
+    ],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 84,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.plateN",
+        "source": "'Plate {{plate}}'"
+      }
+    ]
+  },
+  "native.a73795aae48c61b6": {
+    "english": "Slicing plate {{plate}}…",
+    "context": "shared",
+    "placeholders": [
+      "plate"
+    ],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 85,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.slicingPlate",
+        "source": "'Slicing plate {{plate}}…'"
+      }
+    ]
+  },
+  "native.fbe88505ecf72002": {
+    "english": "Choose a plate",
+    "context": "shared",
+    "placeholders": [],
+    "occurrences": [
+      {
+        "file": "src/screens/makerworldCatalogStrings.ts",
+        "line": 82,
+        "kind": "translation-default",
+        "owner": "buildStrings",
+        "existingKey": "makerworldCatalog.choosePlate",
+        "source": "'Choose a plate'"
+      }
+    ]
+  }
+}

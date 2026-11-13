@@ -1,0 +1,10 @@
+{
+  "native.408c7599de3f73f7": "지금 시작",
+  "native.6a713fff72aa8ea2": "{{printer}}에서 인쇄 중!",
+  "native.93559c971847c9fc": "인쇄를 시작했습니다!",
+  "native.b0ca62f54b85b88b": "대기열 열기",
+  "native.b6425efc2eb51f3f": "인쇄 대기열에서 프린터 대기 중",
+  "native.bacc1c69cabc51bd": "Bambuddy 서버의 슬라이서가 이 모델에 저장된 설정을 읽을 수 없습니다(최신 Bambu Studio로 제작됨). 서버의 슬라이서를 업데이트하거나 다른 인쇄 프로필을 사용해 보세요.",
+  "native.dad70701506fe306": "인쇄 대기열: {{reason}}",
+  "native.ffa719478f4919ad": "수동으로 시작할 때까지 대기열에서 이 인쇄를 보류합니다."
+}
